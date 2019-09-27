@@ -21,7 +21,7 @@ Appliance 10.1.150.220
 ['mida-lab-default_job', 'RUNNING', '18 days, 14 hours, 13 minutes']
 
 
-CLI# python ar11_utilities.py --hostnamelist arxlist --username jkraenzle --password <password> --action report_job_durations
+CLI# python ar11_utilities.py --hostnamelist arxlist --username admin --password admin --action report_job_durations
 
             This is the only command with an example of how to loop the command execution across multiple appliances
 
