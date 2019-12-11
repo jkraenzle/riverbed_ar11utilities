@@ -53,6 +53,8 @@ def ar11_rest_api (action, path, appliance, access_token, version, payload = Non
 	else:
 		if (("Content-Type" in r.headers.keys ()) and ("application/json" in r.headers ["Content-Type"])):
 			result = json.loads (r.content) 
+		elif (("Content-Type" in r.headers.keys ()) and ("application/x-gzip" in r.headers ["Content-Type"])):
+			result = r.content
 		else:
 			result = r.text
 
@@ -137,7 +139,7 @@ def ar11_backup_create (appliance, access_token, version):
 			print ("Error starting backup on %s" % appliance)
 			return None
 		elif (backup_complete == False):
-			time.sleep (5)
+			time.sleep (2)
 
 	return backup_id
 
@@ -146,7 +148,7 @@ def ar11_backup_download_and_delete (appliance, access_token, version, backup_id
 	backup_file = ar11_rest_api ("GET", "/api/npm.backup/1.0/backups/items/" + backup_id + "/file", appliance, access_token, version)
 
 	if (backup_file != None):
-		with open(appliance + ".backup.tgz", "a+") as backup_f:
+		with open (appliance + ".backup.tgz", "wb") as backup_f:
 			backup_f.write (backup_file)
 	
 	ar11_rest_api ("DELETE", "/api/npm.backup/1.0/backups/items/" + backup_id, appliance, access_token, version)
