@@ -147,7 +147,7 @@ def ar11_backup_download_and_delete (appliance, access_token, version, backup_id
 
 	if (backup_file != None):
 		with open(appliance + ".backup.tgz", "a+") as backup_f:
-			backup_f.write (json.dumps (backup_file))
+			backup_f.write (backup_file)
 	
 	ar11_rest_api ("DELETE", "/api/npm.backup/1.0/backups/items/" + backup_id, appliance, access_token, version)
 
