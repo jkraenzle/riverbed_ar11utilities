@@ -171,7 +171,7 @@ def ar11_backup_get (appliance, access_token, version):
 # Header: Authorization: Bearer <access_token>
 def ar11_capture_jobs_get (appliance, access_token, version):
 
-	if (version <= 11.4):
+	if (version == "11.4"):
 		url = "https://" + appliance + "/api/npm.packet_capture/1.0/jobs"
 	else:
 		url = "https://" + appliance + "/api/npm.packet_capture/2.0/jobs"
@@ -733,6 +733,8 @@ def ar11_version_get (appliance, access_token, version):
 		return 11.6
 	elif "11.7" in version_str:
 		return 11.7
+	elif "11.8.0" in version_str:
+		return 11.8
 
 	return 11.4
 
