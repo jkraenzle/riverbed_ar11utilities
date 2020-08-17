@@ -6,12 +6,15 @@ import requests
 import time
 import argparse
 import json
+import getpass
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 
 # Avoid warnings for insecure certificates
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
 AR11_UTILITIES_ACTIONS = ["data_layout", \
+			  "interface_summary", \
+			  "packet_download", \
 			  "pull_backup", \
 			  "report_job_durations", \
 			  "roles_delete", \
@@ -105,6 +108,12 @@ def ar11_data_layout_get (appliance, access_token, version):
 
 	return result 
 
+def ar11_interface_summary_get (appliance, access_token, version):
+
+        result = ar11_rest_api ("GET", "/api/npm.packet_capture/3.0/interfaces", appliance, access_token, version)
+
+        return result
+
 # REST API Python wrapper to create backup on appliance
 def ar11_backup_create (appliance, access_token, version):
 
@@ -171,7 +180,7 @@ def ar11_backup_get (appliance, access_token, version):
 # Header: Authorization: Bearer <access_token>
 def ar11_capture_jobs_get (appliance, access_token, version):
 
-	if (version == "11.4"):
+	if (version <= 11.4):
 		url = "https://" + appliance + "/api/npm.packet_capture/1.0/jobs"
 	else:
 		url = "https://" + appliance + "/api/npm.packet_capture/2.0/jobs"
@@ -190,19 +199,31 @@ def ar11_capture_jobs_get (appliance, access_token, version):
 
 	return result
 
+def ar11_packet_download (appliance, access_token, version, settings_f):
+	### jkraenzle: Yet to implement
+
+	# Read settings and verify that they are valid for this appliance
+
+	# Validate source (job by job name, etc.)
+
+	# Confirm time range within Capture Job, etc.
+
+	# Call to packet download with settings
+
+	# Loop until packets have been downloaded
+
+	return
+
 ##### ACTIONS - roles_export, roles_import, roles_delete 
 
 def ar11_remote_auth_get (appliance, access_token, version):
+
+	result = None
+
 	if (version > 11.5):
-		url = "https://" + appliance + "/api/mgmt.aaa/2.0/remote_authentication"
-		bearer = "Bearer " + access_token
-		headers = {"Authorization":bearer}
+		result = ar11_rest_api ("GET", "/api/mgmt.aaa/2.0/remote_authentication", appliance, access_token, version)
 
-		r = requests.get(url, headers=headers, verify=False)
-		
-		result = json.loads(r.content)
-
-		return result
+	return result
 
 # URL: https://<appliance>/api/mgmt.aaa/2.0/roles/<id>
 # PUT
@@ -733,10 +754,12 @@ def ar11_version_get (appliance, access_token, version):
 		return 11.6
 	elif "11.7" in version_str:
 		return 11.7
-	elif "11.8.0" in version_str:
+	elif "11.8" in version_str:
 		return 11.8
+	elif "11.9" in version_str:
+		return 11.9
 
-	return 11.4
+	return 11.9
 
 def main():
 	# set up arguments in appropriate variables
@@ -771,11 +794,17 @@ def main():
 	if not (args.action in AR11_UTILITIES_ACTIONS):
 		print ("Action %s is unknown" % args.action)
 
+	if (args.password == None or args.password == ""):
+		print ("Please provide password for account %s" % args.username)
+		password = getpass.getpass ()
+	else:
+		password = args.password
+
 	# Loop through hosts, applying 'action'
 	for hostname in hostnamelist:
-		version = ar11_version_get (hostname, args.username, args.password)
+		version = ar11_version_get (hostname, args.username, password)
 
-		access_token, refresh_token = ar11_authenticate (hostname, args.username, args.password, version)
+		access_token, refresh_token = ar11_authenticate (hostname, args.username, password, version)
 
 		if (access_token == None or access_token == ""):	
 			print ("Failed to login to %s" % hostname)
@@ -796,7 +825,22 @@ def main():
 			print ("")
 
 			ar11_refresh_token_revoke (hostname, access_token, refresh_token)
-		
+	
+                # ACTION - interface_summary
+		if (args.action == "interface_summary"):
+			interface_summary = ar11_interface_summary_get (hostname, access_token, version)
+			
+			interfaces = interface_summary ["items"]
+
+			print ("\t%s\t\t%s\t\t%s\t\t%s" % ("Name", "Status".ljust (8), "Packets - 1 hr".rjust (16), "Drops - 1 hr".rjust (16)))
+			for interface in interfaces:
+				print ("\t%s\t\t%s\t\t%s\t\t%s" % (interface ["name"], 
+					str (interface ["state"]["status"]).ljust (8), 
+					str (interface ["state"]["stats"]["packets_total"]["last_hour"]).rjust (16),
+					str (interface ["state"]["stats"]["packets_dropped"]["last_hour"]).rjust (16)))
+
+			ar11_refresh_token_revoke (hostname, access_token, refresh_token)
+	
 		# ACTION - pull_backup
 		elif (args.action == "pull_backup"):
 			backup = ar11_backup_get (hostname, access_token, version)
