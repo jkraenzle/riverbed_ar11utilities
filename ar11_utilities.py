@@ -447,17 +447,16 @@ def ar11_roles_delete (appliance, access_token, version, delete_f):
 		existing_roles = ar11_roles_get (appliance, access_token, version)
 
 		delete_list = []
-		i = 0
 		for role in roles_to_delete:
 			found = False
-			id = 0
 
 			for existing_role in existing_roles:
 				if (role == existing_role ["pretty_name"]):
+					delete_list.append(existing_role ["id"])
 					found = True
-			if (found):
-				delete_list.append(existing_role ["id"])
-			else:
+					break
+
+			if found == False:
 				print ("WARNING: Role %s did not exist on %s" % (role, appliance))
 
 		# Loop through roles, deleting one at a time from appliance
